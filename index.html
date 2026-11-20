@@ -139,6 +139,11 @@ summary{cursor:pointer;font-weight:700;padding:8px 0;min-height:44px}
 .btask{font-weight:900;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:min(calc(110cqw / var(--len,6)),28cqh);text-shadow:0 0 22px rgba(34,211,238,.5)}
 .btask.sm{font-size:min(calc(80cqw / var(--len,6)),15cqh)}
 .bb.typing{gap:1cqh}
+.bb.dcalc .rulebox{font-size:min(3.6cqh,3.6cqw);padding:.6cqh 2.5cqw}
+.bb.dcalc .die.sm{width:min(9.5cqw,12cqh)}.bb.dcalc .die.sm b{font-size:min(5.6cqw,7.2cqh)}.bb.dcalc .die.sm small{font-size:min(2cqw,2.4cqh)}
+.bb.dcalc .bans.typed{font-size:min(9cqh,8cqw)}
+.bb.dcalc .kp{width:min(60cqw,78cqh)}
+.bb.dcalc .kk{height:min(9.5cqh,10cqw)}
 .bans.typed{color:#fff;font-size:min(11cqh,9cqw);display:flex;align-items:center;gap:.3em;min-height:1.1em}
 .bans.typed .ent{color:var(--brand);text-shadow:0 0 16px rgba(34,211,238,.6)}
 .caret{width:.08em;height:.9em;background:var(--brand);animation:blink 1s steps(1) infinite}
@@ -737,7 +742,7 @@ function copyContent(){
   else if(s==='over'){main=rankView();stat=G.result}
   else{
     let ctx=null,selRes=null;
-    if(G.g.typed&&s==='judging')ctx={typed:G.g.typed,entry:G.entry,key:typedKey,neg:!!G.s.neg,toks:G.toks,ops:opsOf(G.s).map(o=>o==='×'?'·':o==='÷'?':':o)};
+    if(G.g.typed&&s==='judging')ctx={typed:G.g.typed,entry:G.entry,key:typedKey,neg:!!G.s.neg||!!(G.g.negEntry&&G.g.negEntry(G.s)),toks:G.toks,ops:opsOf(G.s).map(o=>o==='×'?'·':o==='÷'?':':o)};
     if(G.g.checkSelection&&s==='judging'){
       selRes=G.sel.size?G.g.checkSelection(G.rd,[...G.sel]):null;
       ctx={active:true,sel:G.sel,verdict:selRes?(selRes.ok?'ok':'bad'):null,toggle:toggleCell};
@@ -785,9 +790,9 @@ function typedKey(k){
   else if(k==='✕'){G.state='running';G.stopper=null;G.entry='';G.note='STOP zurückgenommen – weiter geht’s!';renderAll();return}
   else if(k==='OK'){
     if(!/\d/.test(G.entry))return;
-    judge(parseInt(G.entry,10)===G.rd.q.answer);return;
+    judge(parseInt(G.entry,10)===(G.g.answerOf?G.g.answerOf(G.rd):G.rd.q.answer));return;
   }
-  else if(/^\d$/.test(k)&&G.entry.replace('-','').length<7){
+  else if(/^\d$/.test(k)&&G.entry.replace('-','').length<(G.g.maxDigits||7)){
     const cur=G.entry.replace('-','');
     if(cur==='0')G.entry=(G.entry.startsWith('-')?'-':'')+k;else G.entry+=k;
   }
