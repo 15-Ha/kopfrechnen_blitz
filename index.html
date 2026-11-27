@@ -116,6 +116,13 @@ summary{cursor:pointer;font-weight:700;padding:8px 0;min-height:44px}
   background:linear-gradient(180deg,#1a2347,#111830);border:2px solid var(--line);border-radius:22px;overflow:hidden}
 .bcopy.flip{transform:rotate(180deg)}
 .bcopy{transition:transform .35s}
+.bwrap{flex:1 1 0;min-width:0;min-height:0;display:flex;flex-direction:column;gap:8px}
+.bwrap .bcopy{transition:transform .35s,flex-grow .25s}
+.bwrap .bcopy.big{flex:1 1 0}.bwrap .bcopy.small{flex:0 0 clamp(96px,15vh,140px)}
+.bwrap .bhead{flex-basis:30px;font-size:14px}.bwrap .bhead .rt{font-size:16px}
+.bwrap .bstat{flex-basis:38px;font-size:14px}
+.bwrap .bcopy.passive .bstat{display:none}
+.bwrap .rank{transform-origin:center;zoom:.8}
 .bhead{flex:0 0 40px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 16px;font-weight:900;color:var(--muted);font-size:15px;background:#0c1229}
 .bhead .rt.warn{color:#ff5d73;animation:pulse2 .5s infinite alternate}
 @keyframes pulse2{from{opacity:1}to{opacity:.45}}
@@ -155,6 +162,7 @@ summary{cursor:pointer;font-weight:700;padding:8px 0;min-height:44px}
 .kk.numk{background:#2a3a7a;color:#fff;font-size:min(8cqh,6.5cqw)}
 .kk.opk{background:#3a2a6a;color:#e9d5ff}
 .kk.dis{opacity:.25}
+.bb.pas{flex-direction:row;gap:.45em;font-size:min(calc(92cqw / (var(--len,6) + 6)),30cqh)}.bb.pas .btask.sm{font-size:inherit}.bb.pas .bans.typed{font-size:inherit}
 .bans.typed.expr{font-size:min(8.5cqh,6cqw);min-height:1.2em}
 .kk{height:min(11cqh,12cqw);border:0;border-radius:14px;background:#232d5a;color:#fff;font:inherit;font-weight:900;font-size:min(6cqh,5cqw);touch-action:manipulation;box-shadow:0 .5cqh 0 #121936}
 .kk:active{transform:translateY(2px);box-shadow:none}
@@ -231,7 +239,7 @@ summary{cursor:pointer;font-weight:700;padding:8px 0;min-height:44px}
 <script>
 'use strict';
 /* =====================================================================
-   KOPFSACHE BLITZ – eigenständige Kopfrechen-App für 2–5 Personen an einem Gerät · Version 2026-11-20 · LearningView-Anbieter «generiert»
+   KOPFSACHE BLITZ – eigenständige Kopfrechen-App für 2–5 Personen an einem Gerät · Version 2026-11-27 · LearningView-Anbieter «generiert»
    ---------------------------------------------------------------------
    SPIELPRINZIP (analog + digital)
    Das Gerät liegt in der Tischmitte und zeigt allen dieselbe Aufgabe
@@ -450,7 +458,7 @@ registerTheme((function(){
   }
   const MAXOPT=[10,19,20,30,50,99,100,200,250,300,500,1000,2000,5000];
   const blitz=Object.assign({
-    id:'blitz',name:'Blitzrechnen',icon:'⚡',inputTime:12,
+    id:'blitz',name:'Blitzrechnen',icon:'⚡',inputTime:12,dual:true,
     blurb:'Eine Aufgabe für alle – wer das Ergebnis hat, ruft STOP.',
     typed:true,
     rules:'Alle sehen dieselbe Aufgabe mit bis zu 5 Zahlen in einer Zeile. Es gilt Klammer zuerst, dann Punkt vor Strich (Mal = ·, Geteilt = :). Wer das Ergebnis hat, tippt STOP und gibt es dann auf dem Ziffernblock ein. Die App prüft automatisch: richtig gibt +1 Punkt, falsch löst die eingestellte Strafe aus.',
@@ -472,6 +480,10 @@ registerTheme((function(){
     createRound(s,r){const q=blitzQuestion(s,r);return {kind:'blitz',q,solutions:[`${q.text} = ${fmt(q.answer)}`]}},
     renderBoard(rd,rev,ctx){
       const task=h('div',{class:'btask'+(ctx&&ctx.typed?' sm':''),style:`--len:${Math.max(5,rd.q.text.length)}`},rd.q.text);
+      if(ctx&&ctx.typed&&ctx.passive){
+        return h('div',{class:'bb typing pas',style:task.getAttribute('style')},task,
+          h('div',{class:'bans typed'},'= ',h('span',{class:'ent'},ctx.entry.replace('-','−')||'…'),h('span',{class:'caret'})));
+      }
       if(ctx&&ctx.typed){
         const key=(k,cls='',span)=>h('button',{type:'button',class:'kk '+cls,style:span?`grid-column:span ${span}`:'',onpointerdown:e=>{e.preventDefault();ctx.key(k)}},k==='✕'?'↩':k);
         const e=ctx.entry.replace('-','−');
@@ -603,8 +615,9 @@ function secRules(){
       seg([{v:0,l:'kein Abzug'},{v:1,l:'−1 Punkt'}],penMinus(cfg.penalty)?1:0,v=>{cfg.penalty=penMake(penLock(cfg.penalty),!!v);saveCfg();rerender()})),
     h('div',{class:'row2',style:'margin-top:12px'},h('span',{class:'lbl'},'Zeit zum Antworten nach STOP'),
       seg([{v:0,l:'ohne Limit'},{v:5,l:'5 s'},{v:10,l:'10 s'},{v:12,l:'12 s'},{v:15,l:'15 s'},{v:20,l:'20 s'},{v:22,l:'22 s'},{v:30,l:'30 s'}],inTime(),v=>{cfg.inputTime=v;saveCfg();rerender()})),
+    ...(curGame().dual?[h('div',{class:'hint'},'Die Rechnung erscheint oben und unten (jeweils richtig herum). Der Ziffernblock erscheint auf der Seite der Person, die STOP gerufen hat.')]:[
     h('label',{class:'tog'},h('input',{type:'checkbox',checked:cfg.turnToStopper!==false,onchange:e=>{cfg.turnToStopper=e.target.checked;saveCfg()}}),'Beim Eintippen/Antippen dreht sich das Brett zur Person, die STOP gerufen hat (wenn sie gegenüber sitzt)'),
-    h('label',{class:'tog'},h('input',{type:'checkbox',checked:cfg.flipBoard,onchange:e=>{cfg.flipBoard=e.target.checked;saveCfg()}}),'Spielbrett dreht sich jede 2. Runde um 180° (sonst das iPad von Hand drehen)'),
+    h('label',{class:'tog'},h('input',{type:'checkbox',checked:cfg.flipBoard,onchange:e=>{cfg.flipBoard=e.target.checked;saveCfg()}}),'Spielbrett dreht sich jede 2. Runde um 180° (sonst das iPad von Hand drehen)')]),
     h('label',{class:'tog'},h('input',{type:'checkbox',checked:cfg.sound,onchange:e=>{cfg.sound=e.target.checked;saveCfg()}}),'Töne'));
 }
 // Strafe: 'none' = nur diese Rechnung gesperrt · 'lock' = auch nächste Runde · 'point'/'both' = zusätzlich −1 Punkt
@@ -651,7 +664,7 @@ function startGame(){
   beep(1,.01);
   const players=[];
   for(let i=0;i<cfg.n;i++)players.push({i,name:(cfg.names[i]||'').trim()||`Spieler ${i+1}`,color:COLORS[i],score:0,lockNext:false,out:false});
-  G={t,g,s,players,seed:(Math.random()*2**31)>>>0,mode:cfg.endMode,points:cfg.points,rounds:cfg.rounds,limit:cfg.roundTime*1000,pen:cfg.penalty,inLimit:inTime()*1000,inLeft:0,flip:cfg.flipBoard,turn:cfg.turnToStopper!==false,sel:new Set(),
+  G={t,g,s,players,seed:(Math.random()*2**31)>>>0,mode:cfg.endMode,points:cfg.points,rounds:cfg.rounds,limit:cfg.roundTime*1000,pen:cfg.penalty,inLimit:inTime()*1000,inLeft:0,flip:cfg.flipBoard,dual:!!g.dual,turn:cfg.turnToStopper!==false,sel:new Set(),
      state:'ready',round:0,rd:null,elapsed:0,cd:0,stopper:null,revealed:false,note:'',result:'',wl:null,menuArm:false,menuTimer:null};
   buildGame();
   $('#setup').style.display='none';$('#game').style.display='flex';
@@ -678,8 +691,9 @@ function buildGame(){
   b.again=cb('go','↻','Nochmals spielen',startGame);
   b.menu=cb('menu','⌂','Menü',onMenu);
   G.b=b;
-  G.cp=[h('div',{class:'bcopy'})];
-  gm.append(h('div',{class:'prow top'},top),h('div',{class:'mid'},G.cp[0],h('div',{class:'ctrl'},b.start,b.again,b.show,b.ok,b.no,b.menu)),h('div',{class:'prow'},bot));
+  G.cp=G.dual?[h('div',{class:'bcopy flip'}),h('div',{class:'bcopy'})]:[h('div',{class:'bcopy'})];
+  const boards=G.dual?h('div',{class:'bwrap'},G.cp):G.cp[0];
+  gm.append(h('div',{class:'prow top'},top),h('div',{class:'mid'},boards,h('div',{class:'ctrl'},b.start,b.again,b.show,b.ok,b.no,b.menu)),h('div',{class:'prow'},bot));
 }
 function onMenu(){
   if(G.state==='over'||G.menuArm){leaveGame();return}
@@ -731,7 +745,7 @@ function rankView(){
   }));
 }
 function lockLine(){const l=G.players.filter(p=>p.lockNext).map(p=>p.name);return l.length?`  ·  🔒 ${l.join(', ')} pausiert nächste Runde`:''}
-function copyContent(){
+function copyContent(passive){
   const s=G.state;
   const head=h('div',{class:'bhead'},
     h('span',{},G.round?`Runde ${G.round}${G.mode==='rounds'?' / '+G.rounds:''}`:'Bereit'),
@@ -743,7 +757,7 @@ function copyContent(){
   else if(s==='over'){main=rankView();stat=G.result}
   else{
     let ctx=null,selRes=null;
-    if(G.g.typed&&s==='judging')ctx={typed:G.g.typed,entry:G.entry,key:typedKey,neg:!!G.s.neg||!!(G.g.negEntry&&G.g.negEntry(G.s)),toks:G.toks,ops:opsOf(G.s).map(o=>o==='×'?'·':o==='÷'?':':o)};
+    if(G.g.typed&&s==='judging')ctx={typed:G.g.typed,passive:!!passive,entry:G.entry,key:typedKey,neg:!!G.s.neg||!!(G.g.negEntry&&G.g.negEntry(G.s)),toks:G.toks,ops:opsOf(G.s).map(o=>o==='×'?'·':o==='÷'?':':o)};
     if(G.g.checkSelection&&s==='judging'){
       selRes=G.sel.size?G.g.checkSelection(G.rd,[...G.sel]):null;
       ctx={active:true,sel:G.sel,verdict:selRes?(selRes.ok?'ok':'bad'):null,toggle:toggleCell};
@@ -811,7 +825,16 @@ function boardFlipped(){
   if(G.turn&&G.state==='judging'&&G.stopper&&(G.g.typed||G.g.checkSelection))f=G.stopper.i>=Math.ceil(G.players.length/2);
   return f;
 }
-function renderBoards(){G.cp.forEach(el=>{el.className='bcopy'+(boardFlipped()?' flip':'');el.replaceChildren(...copyContent())})}
+// Doppelmodus (z. B. Blitz): Kopie 0 oben (um 180° gedreht), Kopie 1 unten. Ziffernblock nur auf der Seite von der Person, die STOP gerufen hat.
+const stopperCopy=()=>G.stopper?(G.stopper.i>=Math.ceil(G.players.length/2)?0:1):-1;
+function renderBoards(){G.cp.forEach((el,i)=>{
+  if(G.dual){
+    const typing=G.state==='judging'&&!!G.stopper&&(G.g.typed||G.g.checkSelection);
+    const mine=stopperCopy()===i;
+    el.className='bcopy'+(i===0?' flip':'')+(typing?(mine?' big':' small passive'):'');
+    el.replaceChildren(...copyContent(typing&&!mine));
+  }else{el.className='bcopy'+(boardFlipped()?' flip':'');el.replaceChildren(...copyContent())}
+})}
 function answerTimer(){return G.state==='judging'&&G.inLimit&&!G.revealed}
 function rtText(){return answerTimer()?`⏳ ${Math.max(0,Math.ceil(G.inLeft/1000))} s`:G.limit?timeStr(Math.max(0,G.limit-G.elapsed)):timeStr(G.elapsed)}
 function tickTime(){document.querySelectorAll('.rt').forEach(el=>{el.textContent=rtText();el.classList.toggle('warn',answerTimer()&&G.inLeft<=3000)})}
@@ -892,7 +915,7 @@ function adjust(p,d){
   renderAll();
 }
 document.addEventListener('gesturestart',e=>e.preventDefault());
-/* ===== LearningView-Anbieter «generiert» (Version 2026-11-20) =====
+/* ===== LearningView-Anbieter «generiert» (Version 2026-11-27) =====
    Modi: student (laden/speichern) · class (Klassenübersicht) · studentReview (nur lesen) · preview/settings/ausserhalb LearningView (spielbar, ohne Speicherung in LearningView).
    Gespeichert wird: Einstellungen (ohne Spielernamen) + einfache Statistik. Max. 1 MiB. */
 const LV_ORIGIN='https://learningview.org';
